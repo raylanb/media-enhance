@@ -55,8 +55,6 @@ Obsidian 嵌入媒体（视频/音频）播放增强插件：起止时间、播�
 1. 将本目录（`main.js`、`manifest.json`、`styles.css`）放到 vault 的 `.obsidian/plugins/media-enhance/`
 2. 重启 Obsidian，在「设置 → 第三方插件」中启用 media-enhance
 
-注意：请勿与原版 Media Extended 同时启用（两者都接管嵌入播放器，会互相覆盖）。
-
 ## 开发
 
 - 源码即 `main.js`（无构建步骤），修改后把文件复制到插件的 `main.js`
