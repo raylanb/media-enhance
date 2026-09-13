@@ -1,0 +1,104 @@
+.mc-embed {
+  display: block;
+}
+
+.mc-embed .mc-player {
+  position: relative;
+  display: block;
+  width: 100%;
+  line-height: 0;
+}
+
+.mc-embed .mc-media {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  background-color: #000;
+  border-radius: var(--radius-s, 4px);
+}
+
+.mc-embed .mc-player.mc-audio .mc-media {
+  background-color: transparent;
+}
+
+.mc-embed .mc-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.mc-embed .mc-player:hover .mc-toolbar,
+.mc-embed .mc-toolbar:focus-within {
+  opacity: 1;
+}
+
+.mc-embed .mc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 26px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mc-embed .mc-btn:hover {
+  background-color: rgba(0, 0, 0, 0.85);
+}
+
+.mc-embed .mc-btn .svg-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.mc-embed .mc-player.mc-audio .mc-toolbar {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+@media (hover: none) {
+  .mc-embed .mc-toolbar {
+    opacity: 1;
+  }
+}
+
+.mc-embed .mc-player.mc-flash {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-s, 4px);
+}
+
+.mc-modal-player h4 {
+  margin: 0 0 12px;
+}
+
+.mc-modal-holder {
+  width: 100%;
+}
+
+.mc-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.mc-edit-modal .setting-item {
+  padding: 8px 0;
+}
+
+.mc-speed-input {
+  width: 100%;
+}

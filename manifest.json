@@ -1,0 +1,9 @@
+{
+  "id": "media-enhance",
+  "name": "media-enhance",
+  "version": "0.01",
+  "minAppVersion": "1.4.0",
+  "description": "嵌入视频/音频增强：起始/结束时间、播放倍速、范围锁定、时间戳复制与定位",
+  "author": "raylanb",
+  "isDesktopOnly": false
+}
