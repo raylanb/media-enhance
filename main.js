@@ -830,14 +830,11 @@ class MediaClipPlugin extends Plugin {
     await this.loadSettings();
     this.players = new Set();
     this.clipModal = null;
+    this.originalOpenLinkText = null;
+    this.originalOwnDescriptor = null;
     this.addSettingTab(new ClipSettingTab(this.app, this));
     this.registerMediaEmbeds();
-    this.registerDomEvent(
-      document,
-      "click",
-      (event) => this.handleTimestampClick(event),
-      true
-    );
+    this.patchOpenLinkText();
     this.addCommand({
       id: "refresh-media-embeds",
       name: "刷新媒体嵌入显示",
@@ -852,61 +849,94 @@ class MediaClipPlugin extends Plugin {
     });
   }
 
-  findViewForElement(element) {
+  patchOpenLinkText() {
+    const workspace = this.app.workspace;
+    if (typeof workspace.openLinkText !== "function") return;
+    this.originalOpenLinkText = workspace.openLinkText;
+    this.originalOwnDescriptor = Object.getOwnPropertyDescriptor(workspace, "openLinkText") || null;
+    const plugin = this;
+    workspace.openLinkText = function (linktext, sourcePath) {
+      if (plugin.tryHandleTimestampLink(linktext, sourcePath)) {
+        return Promise.resolve();
+      }
+      return plugin.originalOpenLinkText.apply(this, arguments);
+    };
+  }
+
+  restoreOpenLinkText() {
+    if (!this.originalOpenLinkText) return;
+    const workspace = this.app.workspace;
+    if (this.originalOwnDescriptor) {
+      Object.defineProperty(workspace, "openLinkText", this.originalOwnDescriptor);
+    } else {
+      delete workspace.openLinkText;
+    }
+    this.originalOpenLinkText = null;
+    this.originalOwnDescriptor = null;
+  }
+
+  tryHandleTimestampLink(linktext, sourcePath) {
+    if (typeof linktext !== "string") return false;
+    let text = linktext;
+    const pipeIndex = text.indexOf("|");
+    if (pipeIndex >= 0) text = text.slice(0, pipeIndex);
+    const hashIndex = text.indexOf("#");
+    if (hashIndex < 0) return false;
+    const linkPath = text.slice(0, hashIndex);
+    const ext = mediaExtensionFromSrc(linkPath);
+    if (!ext || MEDIA_EXTS.indexOf(ext) < 0) return false;
+    const match = /(?:^|&)t=([^&]*)/.exec(text.slice(hashIndex + 1));
+    if (!match) return false;
+    const start = parseNPT(match[1].split(",")[0]);
+    if (start == null) return false;
+    const file = this.app.metadataCache.getFirstLinkpathDest(linkPath, sourcePath || "");
+    if (!file) return false;
+    this.locateTimestamp(file, start, this.findViewForSource(sourcePath));
+    return true;
+  }
+
+  findViewForSource(sourcePath) {
+    if (!sourcePath) return null;
     for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
       const view = leaf.view;
-      if (view && view.contentEl && view.contentEl.contains(element)) return view;
+      if (view && view.file && view.file.path === sourcePath) return view;
     }
     return null;
   }
 
-  handleTimestampClick(event) {
-    if (typeof event.button === "number" && event.button !== 0) return;
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-    const anchor = target.closest("a.internal-link");
-    if (!anchor) return;
-    if (anchor.closest(".popover, .hover-popover, .suggestion-container")) return;
-    const href = anchor.getAttribute("data-href") || anchor.getAttribute("href") || "";
-    const hashIndex = href.indexOf("#");
-    if (hashIndex < 0) return;
-    const linkPath = href.slice(0, hashIndex);
-    const ext = mediaExtensionFromSrc(linkPath);
-    if (!ext || MEDIA_EXTS.indexOf(ext) < 0) return;
-    const hash = href.slice(hashIndex + 1);
-    const match = /(?:^|&)t=([^&]*)/.exec(hash);
-    if (!match) return;
-    const start = parseNPT(match[1].split(",")[0]);
-    if (start == null) return;
-    const openGesture = event.ctrlKey || event.metaKey;
-    const inEditor = !!target.closest(".cm-content");
-    if (inEditor && !openGesture) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const owner = this.findViewForElement(anchor);
-    const activeFile = this.app.workspace.getActiveFile();
-    const sourcePath = owner && owner.file ? owner.file.path : activeFile ? activeFile.path : "";
-    const file = this.app.metadataCache.getFirstLinkpathDest(linkPath, sourcePath);
-    if (!file) return;
-    this.locateTimestamp(file, start, owner);
+  findLeafForElement(element) {
+    for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
+      const view = leaf.view;
+      if (view && view.contentEl && view.contentEl.contains(element)) return leaf;
+    }
+    return null;
   }
 
   locateTimestamp(file, seconds, preferredView) {
     let target = null;
+    let targetLeaf = null;
     for (const player of this.players) {
       if (!player.media || !player.playerEl || !player.playerEl.isConnected) continue;
       if (player.file.path !== file.path) continue;
-      if (
-        preferredView &&
-        preferredView.contentEl &&
-        preferredView.contentEl.contains(player.playerEl)
-      ) {
+      const leaf = this.findLeafForElement(player.playerEl);
+      if (preferredView && leaf && leaf.view === preferredView) {
         target = player;
+        targetLeaf = leaf;
         break;
       }
-      if (!target) target = player;
+      if (!target) {
+        target = player;
+        targetLeaf = leaf;
+      }
     }
     if (target) {
+      if (targetLeaf) {
+        try {
+          this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
+        } catch (error) {
+          void error;
+        }
+      }
       target.seekTo(seconds);
       target.flash();
       return;
@@ -1029,6 +1059,7 @@ class MediaClipPlugin extends Plugin {
       this.clipModal.close();
       this.clipModal = null;
     }
+    this.restoreOpenLinkText();
     if (this.embedRegistered) this.restoreMediaEmbeds();
     this.markPlayersStale();
   }
