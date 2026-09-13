@@ -16,7 +16,7 @@ const MEDIA_EXTS = VIDEO_EXTS.concat(AUDIO_EXTS);
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
 const DEFAULT_SETTINGS = { defaultSpeed: 1, rememberSpeed: false, lockRange: true };
-const PLAYER_MARK = "media-enhance-0.0.1";
+const PLAYER_MARK = "media-enhance-0.0.2";
 const KNOWN_KEYS = ["t", "speed", "loop", "no_loop", "autoplay", "no_autoplay", "mute", "no_mute"];
 
 function trimNumber(value) {
